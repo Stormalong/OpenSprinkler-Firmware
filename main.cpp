@@ -28,6 +28,7 @@
 #include "weather.h"
 #include "opensprinkler_server.h"
 #include "mqtt.h"
+#include "hunter.h"
 
 #if defined(ARDUINO)
 	#if defined(ESP8266)
@@ -1060,6 +1061,7 @@ void turn_on_station(byte sid, ulong duration) {
 
 	if (os.set_station_bit(sid, 1, duration)) {
 		push_message(NOTIFY_STATION_ON, sid, duration);
+		HunterStart(sid+1,round((q->dur/60)+0.5)); // Starts X-Core Hunter zone for 'dur' minutes +1
 	}
 }
 
@@ -1123,6 +1125,7 @@ void turn_off_station(byte sid, ulong curr_time, byte shift) {
 	} //else { return; }
 
 	os.set_station_bit(sid, 0);
+	HunterStop(sid+1); // Stops X-Core Hunter zones
 
 	// RAH implementation of flow sensor
 	if (flow_gallons > 1) {
