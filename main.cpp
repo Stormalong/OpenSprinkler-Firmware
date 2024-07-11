@@ -22,6 +22,7 @@
  */
 
 #include <limits.h>
+#include <math.h>
 
 #include "OpenSprinkler.h"
 #include "program.h"
@@ -1061,7 +1062,7 @@ void turn_on_station(byte sid, ulong duration) {
 
 	if (os.set_station_bit(sid, 1, duration)) {
 		push_message(NOTIFY_STATION_ON, sid, duration);
-		HunterStart(sid+1,round((q->dur/60)+0.5)); // Starts X-Core Hunter zone for 'dur' minutes +1
+		HunterStart(sid+1,round((duration/60)+0.5)); // Starts X-Core Hunter zone for 'dur' minutes +1
 	}
 }
 

@@ -26,6 +26,7 @@
 #include "gpio.h"
 #include "testmode.h"
 #include "program.h"
+#include "hunter.h"
 
 /** Declare static data members */
 OSMqtt OpenSprinkler::mqtt;
@@ -913,6 +914,7 @@ void OpenSprinkler::begin() {
 	#if defined(PIN_SENSOR2)
 	pinMode(PIN_SENSOR2, INPUT_PULLUP);
 	#endif
+	HunterInit();
 #endif
 
 	// Default controller status variables

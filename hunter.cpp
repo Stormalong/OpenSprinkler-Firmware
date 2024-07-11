@@ -1,3 +1,5 @@
+#include "gpio.h"
+#include "utils.h"
 #include "hunter.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -218,4 +220,8 @@ if (num < 1 || num > 4)
 // Program number - 1 is at bits 31:32
 HunterBitfield(buffer, 31, num - 1, 2);
 HunterWrite(buffer, false);
+}
+
+void HunterInit(void) {
+    pinMode(HUNTER_PIN, OUTPUT);
 }
