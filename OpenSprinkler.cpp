@@ -37,6 +37,9 @@
 #include "services/weather.h"
 #include "storage/maintenance.h"
 #include "storage/sprinkler_log.h"
+#if defined(HUNTER_PIN)
+	#include "drivers/hunter_xcore.h"
+#endif
 #include "external/ArduinoJson.hpp"
 
 #if defined(ESP32)
@@ -943,6 +946,10 @@ void OpenSprinkler::begin() {
 	pinModeExt(PIN_BUTTON_2, INPUT_PULLUP);
 	pinModeExt(PIN_BUTTON_3, INPUT_PULLUP);
 
+#if defined(HUNTER_PIN)
+	hunter_init();
+#endif
+
 	// detect and check RTC type
 	RTC.detect();
 
@@ -1162,6 +1169,17 @@ void OpenSprinkler::latch_apply_all_station_bits() {
 /** Apply all station bits
  * !!! This will activate/deactivate valves !!!
  */
+#if defined(HUNTER_PIN)
+// Run time left for a scheduled station, so the X-Core's own timer covers the whole run
+static uint32_t hunter_remaining_seconds(uint8_t sid) {
+	unsigned char qid = pd.station_qid[sid];
+	if (qid >= pd.nqueue) return 0;
+	RuntimeQueueStruct* q = pd.queue + qid;
+	time_os_t now = OpenSprinkler::now_tz();
+	return (q->st > 0 && q->st + q->dur > now) ? (uint32_t)(q->st + q->dur - now) : 0;
+}
+#endif
+
 void OpenSprinkler::apply_all_station_bits(void (*post_activation_callback)()) {
 	if (bundle_output_dirty) {
 		bundle_resolve(bundle_station_bits, MAX_NUM_BOARDS);
@@ -1279,6 +1297,13 @@ void OpenSprinkler::apply_all_station_bits(void (*post_activation_callback)()) {
 		}
 	}
 	digitalWrite(PIN_SR_LATCH, HIGH);
+
+	#if defined(HUNTER_PIN)
+	{
+		static const unsigned char no_bits[MAX_NUM_BOARDS] = {0};
+		hunter_apply(status.enabled ? applied_station_bits : no_bits, nstations, hunter_remaining_seconds);
+	}
+	#endif
 
 #endif
 		hardware_output_initialized = true;

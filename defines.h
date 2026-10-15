@@ -468,7 +468,12 @@ enum {
 	#define SDA 0
 	#define SCL 0
 
+	// Hunter X-Core on the REM port (see drivers/hunter_xcore.h). GPIO 24 is also the OSPi LCD board's
+	// button 1, so the LCD and buttons are not supported in this build.
+	#define HUNTER_PIN          24
+	#if !defined(HUNTER_PIN)
 	#define USE_DISPLAY
+	#endif
 
 #else // for demo / simulation
 	// use fake hardware pins

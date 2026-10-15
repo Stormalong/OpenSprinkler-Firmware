@@ -1,4 +1,5 @@
 #include "board_profile.h"
+#include "../defines.h" // for HUNTER_PIN
 
 #if defined(ESP8266)
 #include <pgmspace.h>
@@ -71,7 +72,11 @@ const BoardProfile OS40_PROFILE OSBOARD_PROGMEM = {
 };
 
 const BoardProfile OSPI_PROFILE OSBOARD_PROGMEM = {
+#if defined(HUNTER_PIN)
+	{{UNUSED_PIN, 18, 10}, // GPIO 24 drives the Hunter X-Core bus
+#else
 	{{24, 18, 10},
+#endif
 	 {14, 23, UNUSED_PIN, UNUSED_PIN},
 	 {UNUSED_PIN, UNUSED_PIN, UNUSED_PIN, UNUSED_PIN},
 	 UNUSED_PIN, 15, UNUSED_PIN, UNUSED_PIN,
