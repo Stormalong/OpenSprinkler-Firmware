@@ -39,6 +39,13 @@ void server_delete_sensor(const OTF::Request&, OTF::Response&);
 void server_json_sensor_log(const OTF::Request&, OTF::Response&);
 void server_delete_sensor_log(const OTF::Request&, OTF::Response&);
 void server_json_sensor_desc(const OTF::Request&, OTF::Response&);
+void server_json_sitemap(const OTF::Request&, OTF::Response&);
+void server_change_sitemap_pins(const OTF::Request&, OTF::Response&);
+void server_upload_sitemap_image(const OTF::Request&, OTF::Response&);
+void server_json_sitemap_image(const OTF::Request&, OTF::Response&);
+void server_delete_sitemap(const OTF::Request&, OTF::Response&);
+void server_upload_sitemap_drawings(const OTF::Request&, OTF::Response&);
+void server_json_sitemap_drawings(const OTF::Request&, OTF::Response&);
 
 void server_json_stations_main(const OTF::Request&, OTF::Response&);
 void server_json_options_main();

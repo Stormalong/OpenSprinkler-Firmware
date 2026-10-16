@@ -2221,6 +2221,13 @@ void OpenSprinkler::factory_reset() {
 	remove_sensor_log();
 	remove_file(SENADJ_FILENAME);
 
+	// remove the site map stored for the apps
+	remove_file(SITEMAP_FILENAME);
+	remove_file(SITEMAP_IMAGE_FILENAME);
+	remove_file(SITEMAP_IMAGE_TEMP_FILENAME);
+	remove_file(SITEMAP_DRAWINGS_FILENAME);
+	remove_file(SITEMAP_DRAWINGS_TEMP_FILENAME);
+
 	// 5. write 'done' file
 	file_write_byte(DONE_FILENAME, 0, 1);
 }

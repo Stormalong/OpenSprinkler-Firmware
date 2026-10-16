@@ -20,6 +20,7 @@ const char* route_uris[] PROGMEM = {
 #endif
 #endif
 	"jsn", "csn", "dsn", "jsl", "dsl", "jsd",
+	"jm", "cmp", "um", "jmi", "dm", "umd", "jmd",
 };
 
 ApiHandler route_handlers[] = {
@@ -59,6 +60,13 @@ ApiHandler route_handlers[] = {
 	server_json_sensor_log,
 	server_delete_sensor_log,
 	server_json_sensor_desc,
+	server_json_sitemap,
+	server_change_sitemap_pins,
+	server_upload_sitemap_image,
+	server_json_sitemap_image,
+	server_delete_sitemap,
+	server_upload_sitemap_drawings,
+	server_json_sitemap_drawings,
 };
 
 static_assert(sizeof(route_uris) / sizeof(route_uris[0]) ==
