@@ -2,6 +2,7 @@
 """Smoke-test the public JSON contract against a fresh Demo instance."""
 
 import argparse
+import base64
 import http.server
 import json
 import socket
@@ -122,6 +123,24 @@ class DemoServer:
                 response.extend(chunk)
             return bytes(response)
 
+    def post_json(self, endpoint, params=None, body=b""):
+        query_params = {"pw": PASSWORD_HASH}
+        if params:
+            query_params.update(params)
+        query = urllib.parse.urlencode(query_params)
+        response = self.raw_http(
+            (
+                f"POST /{endpoint}?{query} HTTP/1.1\r\n"
+                f"Host: 127.0.0.1\r\n"
+                f"Content-Type: text/plain\r\n"
+                f"Content-Length: {len(body)}\r\n"
+                f"Connection: close\r\n\r\n"
+            ).encode(),
+            [(0, body)] if body else (),
+        )
+        assert response.startswith(b"HTTP/1.1 200"), response[:80]
+        return json.loads(response.split(b"\r\n\r\n", 1)[1])
+
     def set_string_option(self, option_id, value):
         encoded = value.encode("ascii")
         if len(encoded) >= MAX_SOPTS_SIZE:
@@ -190,7 +209,7 @@ def check_options(data):
             "den", "ipas", "devid", "dim", "uwt", "ntp1", "ntp2", "ntp3",
             "ntp4", "lg", "fpr0", "fpr1", "re", "sar", "ife", "ife2",
             "sn1t", "sn1o", "sn2t", "sn2o", "sn1on", "sn1of", "sn2on",
-            "sn2of", "wimod", "reset", "dexp", "mexp", "ms",
+            "sn2of", "wimod", "reset", "dexp", "mexp", "ms", "smap",
         ],
     )
     assert isinstance(data["ms"], list) and len(data["ms"]) == 12
@@ -824,6 +843,89 @@ def check_sprinkler_logs(server):
     print("PASS sprinkler log API")
 
 
+def check_sitemap(server):
+    def revision():
+        return server.get_json("jo")["smap"]
+
+    assert server.get_json("jm") == {"rev": 0, "img": 0, "drw": 0, "pins": []}
+    assert revision() == 0
+
+    # Pins in the request body replace the stored set
+    assert server.post_json("cmp", body=b"0,0,0;2,10000,5000;1,25,75")["result"] == 1
+    assert server.get_json("jm") == {"rev": 1, "img": 0, "drw": 0, "pins": [[0, 0, 0], [2, 10000, 5000], [1, 25, 75]]}
+    assert revision() == 1
+    assert server.post_json("cmp", body=b"0,10001,0")["result"] == 0x11
+    assert server.post_json("cmp", body=b"250,1,1")["result"] == 0x11
+    assert server.post_json("cmp", body=b"0,1")["result"] == 0x12
+    assert server.post_json("cmp", body=b"0,1,1;0,2,2")["result"] == 0x12
+    assert server.post_json("cmp")["result"] == 0x10
+    assert server.get_json("jm")["rev"] == 1
+
+    # Small maps can use the query string; an empty value clears the pins
+    assert server.get_json("cmp", {"p": "3,1,2"})["result"] == 1
+    assert server.get_json("jm")["pins"] == [[3, 1, 2]]
+
+    # Image uploads arrive in ordered chunks and only replace the image when complete
+    image = b"\xff\xd8" + bytes(range(256)) * 60 + b"\xff\xd9"
+    chunk = 6000
+    for offset in range(0, len(image), chunk):
+        part = image[offset:offset + chunk]
+        result = server.post_json("um", {"off": offset, "tot": len(image)}, base64.b64encode(part))
+        assert result["result"] == 1, (offset, result)
+        if offset + len(part) < len(image):
+            assert server.get_json("jm")["img"] == 0
+    mapped = server.get_json("jm")
+    assert mapped["img"] == len(image) and mapped["pins"] == [[3, 1, 2]]
+    status, headers, body = server.get_response("jmi")
+    assert status == 200 and headers.get_content_type() == "image/jpeg"
+    assert body == image
+
+    def encoded(data):
+        return base64.b64encode(data)
+
+    assert server.post_json("um", {"off": 10, "tot": 100}, encoded(b"abc"))["result"] == 0x11
+    assert server.post_json("um", {"off": 0, "tot": 2}, encoded(b"abc"))["result"] == 0x11
+    assert server.post_json("um", {"off": 0, "tot": 2 * 1024 * 1024}, encoded(b"ab"))["result"] == 0x11
+    assert server.post_json("um", {"off": 0, "tot": 3})["result"] == 0x10
+    assert server.post_json("um", {"off": 0, "tot": 3}, b"not base64!")["result"] == 0x12
+    assert server.post_json("um", {"off": 0, "tot": 3}, encoded(b"GIF"))["result"] == 0x12
+    assert server.get_response("jmi")[2] == image
+
+    # Drawings are app-defined text, uploaded in ordered chunks
+    drawings = "".join(f"h,{n % 3},{n},{n * 2},{n + 5},{n * 2 + 5}\n" for n in range(600)).encode()
+    assert len(drawings) > 8192
+    before = revision()
+    chunk = 6000
+    for offset in range(0, len(drawings), chunk):
+        part = drawings[offset:offset + chunk]
+        assert server.post_json("umd", {"off": offset, "tot": len(drawings)}, part)["result"] == 1
+        if offset + len(part) < len(drawings):
+            assert server.get_json("jm")["drw"] == 0
+    assert server.get_json("jm")["drw"] == len(drawings)
+    assert revision() == before + 1
+    status, headers, body = server.get_response("jmd")
+    assert status == 200 and headers.get_content_type() == "text/plain"
+    assert body == drawings
+    assert server.post_json("umd", {"off": 0, "tot": 4}, b"h\x01,1")["result"] == 0x12
+    assert server.post_json("umd", {"off": 0, "tot": 4}, "h,é".encode())["result"] == 0x12
+    assert server.post_json("umd", {"off": 5, "tot": 10}, b"h,1,1")["result"] == 0x11
+    assert server.post_json("umd", {"off": 0, "tot": 999999}, b"h")["result"] == 0x11
+    assert server.post_json("umd", {"off": 0, "tot": 3})["result"] == 0x10
+    assert server.get_response("jmd")[2] == drawings
+    assert server.post_json("umd", {"off": 0, "tot": 0})["result"] == 1
+    assert server.get_json("jm")["drw"] == 0
+    assert server.get_json("jmd")["result"] == 0x10
+
+    small = b"d,1,10,20,30,40\n"
+    assert server.post_json("umd", {"off": 0, "tot": len(small)}, small)["result"] == 1
+    before = revision()
+    assert server.get_json("dm")["result"] == 1
+    assert server.get_json("jm") == {"rev": before + 1, "img": 0, "drw": 0, "pins": []}
+    assert server.get_json("jmi")["result"] == 0x10
+    assert server.get_json("jmd")["result"] == 0x10
+    print("PASS site map API")
+
+
 def check_debug(value):
     require_keys("db", value, ["sprlog_fail", "sprlog_mismatch"])
     assert value["sprlog_fail"] == 0
@@ -850,6 +952,7 @@ def run_contract(server):
     check_weather_failsafe(server)
     check_bundle_commands(server)
     check_sprinkler_logs(server)
+    check_sitemap(server)
     check_nested_option_encodings(server)
 
 

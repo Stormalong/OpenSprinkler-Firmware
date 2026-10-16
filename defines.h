@@ -78,6 +78,27 @@
 #define SENSORS_FILENAME      "sens.dat"    // external sensor definitions
 #define SENADJ_FILENAME       "senadj.dat"  // external sensor adjustment data for programs
 #endif
+// Site map: station pin positions and a background image, stored for the apps.
+#if defined(ESP32)
+#define SITEMAP_FILENAME            "/smap.dat"
+#define SITEMAP_IMAGE_FILENAME      "/smapimg.dat"
+#define SITEMAP_IMAGE_TEMP_FILENAME "/smapimg.tmp"
+#define SITEMAP_DRAWINGS_FILENAME   "/smapdrw.dat"
+#define SITEMAP_DRAWINGS_TEMP_FILENAME "/smapdrw.tmp"
+#else
+#define SITEMAP_FILENAME            "smap.dat"     // site map header and station pins
+#define SITEMAP_IMAGE_FILENAME      "smapimg.dat"  // site map JPEG image
+#define SITEMAP_IMAGE_TEMP_FILENAME "smapimg.tmp"  // site map image upload in progress
+#define SITEMAP_DRAWINGS_FILENAME   "smapdrw.dat"  // site map head runs and drip lines (text)
+#define SITEMAP_DRAWINGS_TEMP_FILENAME "smapdrw.tmp" // site map drawings upload in progress
+#endif
+#if defined(ARDUINO)
+#define SITEMAP_MAX_IMAGE_BYTES     (300UL*1024)   // embedded flash is shared with logs
+#define SITEMAP_MAX_DRAWING_BYTES   (32UL*1024)
+#else
+#define SITEMAP_MAX_IMAGE_BYTES     (1024UL*1024)
+#define SITEMAP_MAX_DRAWING_BYTES   (128UL*1024)
+#endif
 #if defined(ARDUINO)
 #define LOG_DIR                     "/logs/"   // absolute path on LittleFS; writers must ensure parent exists
 #else
