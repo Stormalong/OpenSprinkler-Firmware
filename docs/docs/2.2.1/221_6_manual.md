@@ -415,7 +415,8 @@ While editing, drag a valve or a point to move it. Tap a valve for **Move valve*
 * Each valve is colored by its zone's state: blue when idle, green while running, orange when queued, and grey when disabled. A running zone shows its time remaining, and its heads and lines turn green while the others fade.
 * Tap a valve, head, or line to start the zone, or to stop it if it's running or queued, just like tapping a [station card](#manually-start-stop-a-zone).
 * Valves close together on screen are grouped into one marker with a count. Tap it to zoom in until they separate; valves placed at exactly the same spot show a list instead.
-* Pinch, scroll, or use the **+**/**−** buttons to zoom, and drag to pan. On a computer you can also use the `+`, `-`, and `0` keys to zoom in, zoom out, and reset, and the arrow keys to pan.
+* The map fills the screen, so when the image's shape doesn't match the screen (such as a wide photo on a phone) its edges are cut off at first. Drag to pan, and zoom out to see the whole image. **Reset Zoom** returns to filling the screen.
+* Pinch, scroll, or use the **+**/**−** buttons to zoom. On a computer you can also use the `+`, `-`, and `0` keys to zoom in, zoom out, and reset, and the arrow keys to pan.
 
 !!! info "Where the map is stored"
     With this firmware the map is stored on the controller, so changes made on one phone or browser appear on the others. If someone else changes the map while you're editing it, you're asked before your changes overwrite theirs. **Export Configuration** includes the map (an emailed backup leaves out the image), and **Factory Reset** removes it. With older firmware, the map is saved only on the device where you made it.
