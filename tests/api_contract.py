@@ -916,6 +916,20 @@ def check_sitemap(server):
     assert server.get_json("jm")["drw"] == 0
     assert server.get_json("jmd")["result"] == 0x10
 
+    # OpenThings Cloud doesn't pass on POST requests with a body, so chunks may arrive in the d parameter instead
+    cloud_image = b"\xff\xd8" + bytes(range(256)) * 3 + b"\xff\xd9"
+    for offset in range(0, len(cloud_image), 300):
+        part = base64.b64encode(cloud_image[offset:offset + 300]).decode()
+        assert server.get_json("um", {"off": offset, "tot": len(cloud_image), "d": part})["result"] == 1
+    assert server.get_response("jmi")[2] == cloud_image
+    cloud_drawings = "".join(f"d,{n % 3},{n},1,2,3\n" for n in range(40)).encode()
+    for offset in range(0, len(cloud_drawings), 200):
+        part = cloud_drawings[offset:offset + 200].decode()
+        assert server.get_json("umd", {"off": offset, "tot": len(cloud_drawings), "d": part})["result"] == 1
+    assert server.get_response("jmd")[2] == cloud_drawings
+    assert server.get_json("um", {"off": 0, "tot": 3})["result"] == 0x10
+    assert server.get_json("umd", {"off": 0, "tot": 3, "d": "h,\x01"})["result"] == 0x12
+
     small = b"d,1,10,20,30,40\n"
     assert server.post_json("umd", {"off": 0, "tot": len(small)}, small)["result"] == 1
     before = revision()

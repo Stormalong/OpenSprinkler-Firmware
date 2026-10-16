@@ -196,6 +196,18 @@ bool bump_revision() {
 	return write_header(header);
 }
 
+// The data a request carries: its body, or when it has none, the URL parameter named key. OpenThings Cloud doesn't
+// pass on POST requests that have a body, so apps connected through it send the data in the URL instead.
+static char* request_data(const OTF::Request& req, const char* key, size_t& length) {
+	char* data = req.getBody();
+	length = data ? req.getBodyLength() : 0;
+	if (!length) {
+		data = req.getQueryParameter(key);
+		length = data ? strlen(data) : 0;
+	}
+	return length ? data : nullptr;
+}
+
 // Streams a stored file as the response body.
 #if defined(ARDUINO)
 using flash_text = const __FlashStringHelper*;
@@ -330,8 +342,8 @@ void server_change_sitemap_pins(OTF_PARAMS_DEF) {
 }
 
 /** Upload one chunk of the site map image
- * Command: /um?pw=xxx&off=offset&tot=total size, with the chunk base64 encoded as the request body
- * off and tot count decoded bytes. Chunks must arrive in order; off=0 starts a new upload.
+ * Command: /um?pw=xxx&off=offset&tot=total size, with the chunk base64 encoded as the request body,
+ * or URL encoded in the d parameter (for OpenThings Cloud). off and tot count decoded bytes. Chunks must arrive in order; off=0 starts a new upload.
  * The image replaces the current one once the last chunk arrives and must be a JPEG.
  */
 void server_upload_sitemap_image(OTF_PARAMS_DEF) {
@@ -344,11 +356,12 @@ void server_upload_sitemap_image(OTF_PARAMS_DEF) {
 		handle_return(HTML_DATA_OUTOFBOUND);
 	}
 
-	// Also rejects bodiless requests such as CORS preflights
-	char* body = req.getBody();
+	// Also rejects requests without data, such as CORS preflights
+	size_t encoded_length = 0;
+	char* body = request_data(req, "d", encoded_length);
 	uint32_t length = 0;
-	if (!body || !req.getBodyLength()) handle_return(HTML_DATA_MISSING);
-	if (!decode_base64(body, req.getBodyLength(), length) || !length) handle_return(HTML_DATA_FORMATERROR);
+	if (!body) handle_return(HTML_DATA_MISSING);
+	if (!decode_base64(body, encoded_length, length) || !length) handle_return(HTML_DATA_FORMATERROR);
 
 	if (!total || offset + length > total) handle_return(HTML_DATA_OUTOFBOUND);
 
@@ -381,7 +394,8 @@ void server_json_sitemap_image(OTF_PARAMS_DEF) {
 }
 
 /** Upload one chunk of the site map drawings (head runs and drip lines)
- * Command: /umd?pw=xxx&off=offset&tot=total size, with the chunk as a plain text request body
+ * Command: /umd?pw=xxx&off=offset&tot=total size, with the chunk as a plain text request body,
+ * or URL encoded in the d parameter (for OpenThings Cloud)
  * Chunks must arrive in order; off=0 starts a new upload, and tot=0 with an empty body removes the drawings.
  * The text format belongs to the apps; it must be printable ASCII with newlines.
  */
@@ -395,16 +409,17 @@ void server_upload_sitemap_drawings(OTF_PARAMS_DEF) {
 		handle_return(HTML_DATA_OUTOFBOUND);
 	}
 
-	const char* body = req.getBody();
-	uint32_t length = (uint32_t)req.getBodyLength();
+	size_t data_length = 0;
+	const char* body = request_data(req, "d", data_length);
+	uint32_t length = (uint32_t)data_length;
 	if (total == 0 && offset == 0) {
 		remove_file(SITEMAP_DRAWINGS_TEMP_FILENAME);
 		if (!remove_file(SITEMAP_DRAWINGS_FILENAME)) handle_return(HTML_INTERNAL_ERROR);
 		handle_return(bump_revision() ? HTML_SUCCESS : HTML_INTERNAL_ERROR);
 	}
 
-	// Also rejects bodiless requests such as CORS preflights
-	if (!body || !length) handle_return(HTML_DATA_MISSING);
+	// Also rejects requests without data, such as CORS preflights
+	if (!body) handle_return(HTML_DATA_MISSING);
 	if (!is_drawing_text(body, length)) handle_return(HTML_DATA_FORMATERROR);
 	unsigned char result = write_upload_chunk(SITEMAP_DRAWINGS_TEMP_FILENAME, SITEMAP_DRAWINGS_FILENAME, body, length,
 		offset, total);
