@@ -403,12 +403,12 @@ The site map shows your zones on a photo or drawing of your property. Switch bet
 2. Tap the map where a zone's valve is, then choose the zone from the list. Repeat for each zone.
 3. Tap a valve to draw what it waters:
     * **Add heads:** tap where each sprinkler head is. The heads are joined by a pipe, and a pipe runs from the valve to the first head.
-    * **Add drip line:** tap points along the drip line (at least two).
+    * **Add drip line:** tap points along the drip line. A single tap draws a straight drip line from the valve.
 
     While drawing, use the bar at the top left to undo the last point, finish ✔, or cancel ✖. You can still drag to pan and pinch to zoom; only taps add points.
 4. Tap the green ✔ to save, or the red ✖ to discard your changes. Leaving the page while editing also discards them. The curved arrow clears the whole map.
 
-While editing, drag a valve or a point to move it. Tap a valve for **Move valve** or **Delete** (which also removes its heads and drip lines), or tap a line to add points to it, undo its last point, or delete it.
+While editing, drag a valve or a point to move it. Tap a valve for **Move valve** or **Delete** (which also removes its heads and drip lines), or tap a line to add points to it, undo its last point, or delete it. To branch a line, tap it where the branch should start and choose **Add heads** or **Add drip line**; the branch is drawn from a small dot on the line.
 
 **Using the map**
 
